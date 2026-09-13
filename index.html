@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIRA STUDIO - Premium Hair Care</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- FontAwesome -->
+    <!-- 🚀 นำเข้า LINE LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Prompt', sans-serif; background-color: #fafafa; color: #1a1a1a; }
@@ -18,11 +16,6 @@
         ::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        @media print {
-            body * { visibility: hidden; }
-            #print-section, #print-section * { visibility: visible; }
-            #print-section { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
-        }
     </style>
 </head>
 <body>
@@ -35,9 +28,13 @@
                     <span class="font-bold text-lg md:text-2xl tracking-widest uppercase">Mira Studio</span>
                 </div>
                 <div class="flex items-center gap-4 md:gap-6">
-                    <button @click="isStatusOpen = true" class="text-xs md:text-sm font-medium text-gray-500 hover:text-black transition-colors flex items-center gap-2 border md:border-none p-2 md:p-0 rounded-lg">
-                        <i class="fa-solid fa-truck-fast"></i> <span class="hidden md:inline">เช็คสถานะ / ใบจัดส่ง</span>
-                    </button>
+                    
+                    <!-- โชว์รูปโปรไฟล์ LINE แทนปุ่มเช็คสถานะเดิม -->
+                    <div v-if="lineProfile" @click="fetchHistory" class="flex items-center gap-2 cursor-pointer bg-gray-50 border border-gray-200 hover:bg-gray-100 p-1.5 md:px-3 md:py-1.5 rounded-full transition shadow-sm">
+                        <img :src="lineProfile.pictureUrl" class="w-7 h-7 md:w-8 md:h-8 rounded-full border border-gray-300">
+                        <span class="text-xs md:text-sm font-bold text-gray-700 hidden md:block">ประวัติออเดอร์</span>
+                    </div>
+
                     <button @click="isCartOpen = true" class="relative text-gray-800 hover:text-black transition-transform hover:scale-110 p-2 md:p-0">
                         <i class="fa-solid fa-bag-shopping text-xl md:text-2xl"></i>
                         <span v-if="cart.length > 0" class="absolute top-0 right-0 md:-top-1 md:-right-2 bg-red-600 text-[10px] md:text-xs font-bold text-white rounded-full h-4 w-4 md:h-5 md:w-5 flex items-center justify-center border-2 border-white">{{ cart.length }}</span>
@@ -46,9 +43,8 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
+        <!-- Main Content (แสดงสินค้า) -->
         <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 w-full flex flex-col md:flex-row gap-6 md:gap-8">
-            <!-- Sidebar -->
             <aside class="w-full md:w-64 shrink-0 relative">
                 <div class="md:sticky top-24 md:top-28 space-y-4 md:space-y-8">
                     <div>
@@ -61,7 +57,6 @@
                 </div>
             </aside>
 
-            <!-- Product Grid -->
             <div class="flex-1 min-h-[500px]">
                 <div v-if="loading" class="flex flex-col items-center justify-center h-full text-gray-400 pt-20">
                     <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4"></i>
@@ -71,12 +66,6 @@
                     <div v-for="product in filteredProducts" :key="product['บาร์โค้ด']" @click="openProductModal(product)" class="group relative bg-white rounded-xl md:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 flex flex-col">
                         <div class="aspect-[4/5] relative overflow-hidden bg-gray-50">
                             <img :src="product['รูป1'] || 'https://via.placeholder.com/400?text=No+Image'" class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700">
-                            
-                            <div class="absolute top-2 left-2 md:top-3 md:left-3 flex flex-col gap-1">
-                                <span v-if="product['Qty'] <= 0" class="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider">Out of Stock</span>
-                                <span v-else-if="product['ราคาโปรโมชั่น']" class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider">Sale</span>
-                            </div>
-                            
                             <div class="absolute inset-x-0 bottom-0 p-2 md:p-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex justify-center translate-y-0 md:translate-y-4 md:group-hover:translate-y-0">
                                 <button v-if="product['Qty'] > 0" @click.stop="addToCart(product)" class="w-full bg-black/90 text-white py-2 md:py-2.5 rounded-lg md:rounded-xl text-xs md:text-sm font-medium hover:bg-black transition-colors shadow-lg flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-cart-shopping"></i> <span class="hidden md:inline">ใส่ตะกร้า</span><span class="md:hidden">เพิ่ม</span>
@@ -85,16 +74,12 @@
                             </div>
                         </div>
                         <div class="p-3 md:p-4 flex-1 flex flex-col">
-                            <p class="text-[9px] md:text-[10px] text-gray-400 font-bold tracking-wider uppercase mb-1 line-clamp-1">{{ product['แบรนด์'] }}</p>
                             <h3 class="font-semibold text-gray-800 text-xs md:text-sm leading-tight mb-1 line-clamp-2">{{ product['Name'] }}</h3>
-                            
                             <p class="text-[10px] md:text-xs mb-2 font-medium" :class="product['Qty'] > 0 ? 'text-green-600' : 'text-red-500'">
                                 <i class="fa-solid fa-box"></i> คงเหลือ: {{ product['Qty'] || 0 }}
                             </p>
-                            
                             <div class="flex items-end gap-1 md:gap-2 mt-auto">
                                 <span class="text-sm md:text-lg font-bold text-black">฿{{ getPrice(product) }}</span>
-                                <span v-if="product['ราคาโปรโมชั่น']" class="text-[10px] md:text-xs text-gray-400 line-through mb-0.5">฿{{ product['Price'] }}</span>
                             </div>
                         </div>
                     </div>
@@ -104,56 +89,51 @@
 
         <!-- 🛒 Shopping Cart Drawer -->
         <div v-if="isCartOpen" class="fixed inset-0 z-50 overflow-hidden">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="isCartOpen = false"></div>
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="isCartOpen = false"></div>
             <div class="fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white shadow-2xl flex flex-col h-full z-10">
                 <div class="flex items-center justify-between p-4 md:p-6 border-b border-gray-100 shrink-0 bg-white z-20">
-                    <h2 class="text-lg md:text-xl font-bold uppercase tracking-wider">Your Bag</h2>
-                    <button @click="isCartOpen = false" class="text-gray-400 hover:text-black transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    <h2 class="text-lg md:text-xl font-bold">Your Bag</h2>
+                    <button @click="isCartOpen = false" class="text-gray-400 hover:text-black"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
                 
                 <div class="flex-1 overflow-y-auto bg-gray-50 pb-10">
                     <div class="p-4 md:p-6 space-y-4">
-                        <div v-if="cart.length === 0" class="flex flex-col items-center justify-center py-20 text-gray-400 space-y-4">
-                            <i class="fa-solid fa-bag-shopping text-5xl md:text-6xl text-gray-200"></i>
-                            <p class="text-sm">ตะกร้าสินค้าว่างเปล่า</p>
-                        </div>
-                        <div v-for="(item, index) in cart" :key="index" class="flex gap-3 md:gap-4 bg-white p-3 md:p-4 rounded-xl md:rounded-2xl shadow-sm border border-gray-100">
-                            <img :src="item.product['รูป1'] || 'https://via.placeholder.com/100'" class="w-16 h-20 md:w-20 md:h-24 object-cover rounded-lg border border-gray-50">
+                        <div v-for="(item, index) in cart" :key="index" class="flex gap-3 bg-white p-3 md:p-4 rounded-xl border border-gray-100">
+                            <img :src="item.product['รูป1']" class="w-16 h-20 object-cover rounded-lg">
                             <div class="flex-1 flex flex-col justify-between py-1">
                                 <div>
-                                    <h3 class="text-xs md:text-sm font-semibold text-gray-900 leading-tight line-clamp-2">{{ item.product['Name'] }}</h3>
-                                    <p class="text-black font-bold text-sm mt-1">฿{{ getPrice(item.product) }}</p>
+                                    <h3 class="text-xs font-semibold">{{ item.product['Name'] }}</h3>
+                                    <p class="font-bold text-sm mt-1">฿{{ getPrice(item.product) }}</p>
                                 </div>
                                 <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center gap-2 md:gap-3 border border-gray-200 rounded-lg px-2 py-1 bg-gray-50">
-                                        <button @click="item.qty > 1 ? item.qty-- : null" class="text-gray-500 hover:text-black w-4 h-4 flex items-center justify-center"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                        <span class="text-xs md:text-sm font-medium w-4 text-center">{{ item.qty }}</span>
-                                        <button @click="item.qty < item.product['Qty'] ? item.qty++ : alert('สินค้าในสต๊อกมีเพียง ' + item.product['Qty'] + ' ชิ้น')" class="text-gray-500 hover:text-black w-4 h-4 flex items-center justify-center"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                    <div class="flex items-center border rounded-lg px-2 py-1 bg-gray-50">
+                                        <button @click="item.qty > 1 ? item.qty-- : null"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                                        <span class="text-xs w-6 text-center">{{ item.qty }}</span>
+                                        <button @click="item.qty < item.product['Qty'] ? item.qty++ : alert('สต๊อกไม่พอ')"><i class="fa-solid fa-plus text-[10px]"></i></button>
                                     </div>
-                                    <button @click="cart.splice(index, 1)" class="text-red-400 text-xs md:text-sm underline">ลบออก</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="cart.length > 0" class="px-4 md:px-6 pb-6 mt-2">
-                        <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div v-if="cart.length > 0" class="px-4 pb-6 mt-2">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                             <div class="flex justify-between items-end mb-4 border-b pb-4">
-                                <p class="text-gray-500 text-sm font-medium">ยอดสุทธิ (Total)</p>
-                                <p class="text-xl md:text-2xl font-bold text-black">฿{{ cartTotal }}</p>
+                                <p class="text-sm">ยอดสุทธิ</p>
+                                <p class="text-xl font-bold">฿{{ cartTotal }}</p>
                             </div>
-                            <input v-model="customer.name" type="text" placeholder="ชื่อ-นามสกุล" class="w-full mb-3 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
-                            <input v-model="customer.phone" type="text" placeholder="เบอร์โทรศัพท์" class="w-full mb-3 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none">
-                            <textarea v-model="customer.address" placeholder="ที่อยู่จัดส่ง..." class="w-full mb-4 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm h-20 outline-none resize-none"></textarea>
+                            <input v-model="customer.name" type="text" placeholder="ชื่อ-นามสกุล" class="w-full mb-3 p-3 bg-gray-50 border rounded-xl text-sm">
+                            <input v-model="customer.phone" type="text" placeholder="เบอร์โทรศัพท์" class="w-full mb-3 p-3 bg-gray-50 border rounded-xl text-sm">
+                            <textarea v-model="customer.address" placeholder="ที่อยู่จัดส่ง..." class="w-full mb-4 p-3 bg-gray-50 border rounded-xl text-sm h-20"></textarea>
                             
-                            <label class="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-2 cursor-pointer bg-gray-100 p-3 md:p-4 rounded-xl border border-dashed hover:border-black transition">
-                                <i class="fa-solid fa-cloud-arrow-up text-lg md:text-xl"></i>
-                                <span v-if="!slipBase64" class="flex-1">อัปโหลดสลิปโอนเงิน (คลิก)</span>
+                            <label class="flex items-center gap-2 text-xs font-semibold text-gray-600 mb-2 cursor-pointer bg-gray-100 p-3 rounded-xl border border-dashed">
+                                <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                                <span v-if="!slipBase64" class="flex-1">อัปโหลดสลิปโอนเงิน</span>
                                 <span v-else class="text-green-600 flex-1">แนบสลิปเรียบร้อยแล้ว</span>
                                 <input type="file" @change="handleFileUpload" accept="image/*" class="hidden">
                             </label>
                             
-                            <button @click="checkout" :disabled="isCheckingOut" class="w-full bg-black text-white font-bold py-3 md:py-4 rounded-xl hover:bg-gray-800 transition shadow-lg flex justify-center items-center mt-4">
+                            <button @click="checkout" :disabled="isCheckingOut" class="w-full bg-black text-white font-bold py-3 rounded-xl">
                                 <span v-if="!isCheckingOut">ยืนยันการสั่งซื้อ</span>
                                 <i v-else class="fa-solid fa-spinner fa-spin"></i>
                             </button>
@@ -163,41 +143,51 @@
             </div>
         </div>
 
-        <!-- 📦 Status Modal (สำหรับลูกค้า) -->
-        <div v-if="isStatusOpen" class="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="isStatusOpen = false"></div>
+        <!-- 📦 ประวัติออเดอร์ของลูกค้า (ดึงออโต้จาก LINE ID ไม่ต้องพิมพ์หา) -->
+        <div v-if="isHistoryOpen" class="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="isHistoryOpen = false"></div>
             <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] z-10 relative">
-                <div class="flex items-center justify-between p-4 border-b">
-                    <h2 class="text-base font-bold"><i class="fa-solid fa-box-open mr-2"></i> ติดตามสถานะออเดอร์</h2>
-                    <button @click="isStatusOpen = false"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-                <div class="p-4 overflow-y-auto bg-gray-50 flex-1">
-                    <div class="flex gap-2 mb-4">
-                        <input v-model="searchPhone" type="text" placeholder="กรอกเบอร์โทรศัพท์ที่ใช้สั่งซื้อ..." class="flex-1 p-2 bg-white border rounded-xl outline-none text-sm">
-                        <button @click="checkStatus" class="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold">ค้นหา</button>
+                <div class="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-2xl">
+                    <div class="flex items-center gap-3">
+                        <img v-if="lineProfile" :src="lineProfile.pictureUrl" class="w-10 h-10 rounded-full border border-gray-300">
+                        <div>
+                            <h2 class="text-base font-bold">ประวัติการสั่งซื้อ</h2>
+                            <p class="text-xs text-gray-500">{{ lineProfile ? lineProfile.displayName : '' }}</p>
+                        </div>
                     </div>
-                    <div v-if="orderStatuses.length > 0" class="space-y-4">
-                        <div v-for="order in orderStatuses" :key="order.orderId" class="bg-white p-4 md:p-5 rounded-xl border shadow-sm text-sm relative">
-                            <div class="flex justify-between items-start mb-2">
+                    <button @click="isHistoryOpen = false" class="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-full hover:bg-gray-300"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="p-4 overflow-y-auto flex-1">
+                    <div v-if="isLoadingHistory" class="text-center py-10 text-gray-400">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-2"></i>
+                        <p class="text-sm">กำลังโหลดประวัติ...</p>
+                    </div>
+                    <div v-else-if="orderHistory.length === 0" class="text-center py-10 text-gray-400">
+                        <i class="fa-solid fa-box-open text-4xl mb-2 text-gray-200"></i>
+                        <p class="text-sm">คุณยังไม่มีประวัติการสั่งซื้อ</p>
+                    </div>
+                    <div v-else class="space-y-4">
+                        <div v-for="order in orderHistory" :key="order.orderId" class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative">
+                            <div class="flex justify-between items-start mb-2 border-b border-gray-50 pb-2">
                                 <div>
-                                    <p class="font-bold text-base">{{ order.orderId }}</p>
-                                    <p class="text-gray-500 text-xs">{{ new Date(order.date).toLocaleDateString('th-TH') }}</p>
+                                    <p class="font-bold text-sm">{{ order.orderId }}</p>
+                                    <p class="text-gray-400 text-[10px]">{{ new Date(order.date).toLocaleDateString('th-TH', {year: 'numeric', month: 'short', day: 'numeric'}) }}</p>
                                 </div>
-                                <span class="px-2 py-1 rounded-md text-xs font-bold" :class="order.status && order.status.includes('จัดส่ง') ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                                <span class="px-2 py-1 rounded text-[10px] font-bold" :class="order.status && order.status.includes('จัดส่ง') ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
                                     {{ order.status || 'กำลังดำเนินการ' }}
                                 </span>
                             </div>
                             
-                            <p class="mb-4 text-gray-700">{{ order.items }}</p>
+                            <p class="mb-3 text-gray-600 text-xs leading-relaxed whitespace-pre-wrap">{{ order.items }}</p>
                             
-                            <!-- โชว์เลขพัสดุ และปุ่มเช็คพัสดุ (ไม่มีปุ่มปริ้นแล้ว) -->
-                            <div v-if="order.tracking" class="mt-2 bg-blue-50 p-3 rounded-xl border border-blue-100 flex items-center justify-between">
+                            <div v-if="order.tracking" class="bg-blue-50 p-2 md:p-3 rounded-lg border border-blue-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                                 <div>
-                                    <p class="text-[10px] text-gray-500 font-bold tracking-wider mb-1">เลขพัสดุ (TRACKING)</p>
-                                    <p class="font-bold text-blue-700 text-base">{{ order.tracking }}</p>
+                                    <p class="text-[9px] text-gray-500 font-bold tracking-wider">TRACKING NUMBER</p>
+                                    <p class="font-bold text-blue-700 text-sm md:text-base">{{ order.tracking }}</p>
                                 </div>
-                                <a :href="'https://parcelsapp.com/th/tracking/' + order.tracking" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center gap-2 shadow-sm hover:shadow-md">
-                                    <i class="fa-solid fa-truck-fast"></i> ติดตามพัสดุ
+                                <a :href="'https://parcelsapp.com/th/tracking/' + order.tracking" target="_blank" class="w-full md:w-auto text-center bg-blue-600 text-white px-3 py-1.5 md:py-2 rounded-md text-xs font-bold hover:bg-blue-700 transition">
+                                    ติดตามพัสดุ <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i>
                                 </a>
                             </div>
                         </div>
@@ -205,71 +195,48 @@
                 </div>
             </div>
         </div>
-        
-        <!-- 🖨️ พื้นที่ใบปะหน้าสำหรับพิมพ์ -->
-        <div id="print-section" v-if="printData" class="bg-white p-4 max-w-[10cm] mx-auto border-2 border-dashed border-black m-4" style="display: none;">
-            <div class="text-center border-b-2 border-black pb-2 mb-2">
-                <h1 class="font-bold text-2xl">MIRA STUDIO</h1>
-            </div>
-            <div class="border-b-2 border-black pb-2 mb-2">
-                <p class="font-bold text-sm bg-black text-white inline-block px-1 mb-1">ผู้รับ (RECEIVER)</p>
-                <h2 class="font-bold text-lg">{{ printData.customerName }}</h2>
-                <p class="text-sm font-bold">{{ printData.phone }}</p>
-                <p class="text-sm">{{ printData.address }}</p>
-            </div>
-            <div class="text-[11px]">
-                <p><b>Order ID:</b> {{ printData.orderId }}</p>
-                <div class="mt-2 border-t border-black pt-1">
-                    <p class="font-bold">รายการ:</p>
-                    <p class="whitespace-pre-wrap">{{ printData.items }}</p>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Vue Scripts -->
     <script>
         const { createApp } = Vue;
         createApp({
             data() {
                 return {
-                    apiUrl: 'https://script.google.com/macros/s/AKfycby85Ckqa8B3_wduZx0AYk-fi1MNxwWC6U_n8hmLVtiZdlkGbVmG1r8ZJbp2aaww7WSTRg/exec', // <--- นำลิงก์ที่ Deploy ล่าสุดมาวางตรงนี้
+                    apiUrl: 'https://script.google.com/macros/s/AKfycby85Ckqa8B3_wduZx0AYk-fi1MNxwWC6U_n8hmLVtiZdlkGbVmG1r8ZJbp2aaww7WSTRg/exec', // <-- ใส่ลิงก์ Apps Script
+                    liffId: '2009620851-63TYRClY', // <-- ยืนยัน LIFF ID ของคุณ
+                    lineProfile: null, 
                     products: [], loading: true, selectedCategory: '', selectedBrand: '',
-                    selectedProduct: null, activeImage: '',
-                    cart: [], isCartOpen: false, isCheckingOut: false,
+                    selectedProduct: null, cart: [], isCartOpen: false, isCheckingOut: false,
                     customer: { name: '', phone: '', address: '' }, slipBase64: '',
-                    isStatusOpen: false, searchPhone: '', orderStatuses: [], printData: null
+                    isHistoryOpen: false, isLoadingHistory: false, orderHistory: []
                 }
             },
             computed: {
                 uniqueCategories() {
                     let allCats = [];
-                    this.products.forEach(p => {
-                        if (p['หมวดหมู่เว็บ']) {
-                            let cats = String(p['หมวดหมู่เว็บ']).split(',').map(c => c.trim()).filter(Boolean);
-                            allCats.push(...cats);
-                        }
-                    });
+                    this.products.forEach(p => { if (p['หมวดหมู่เว็บ']) allCats.push(...String(p['หมวดหมู่เว็บ']).split(',').map(c => c.trim()).filter(Boolean)); });
                     return [...new Set(allCats)];
                 },
-                uniqueBrands() { return [...new Set(this.products.map(p => p['แบรนด์']).filter(Boolean))]; },
                 filteredProducts() {
-                    return this.products.filter(p => {
-                        let matchCat = true;
-                        if (this.selectedCategory && p['หมวดหมู่เว็บ']) {
-                            let productCats = String(p['หมวดหมู่เว็บ']).split(',').map(c => c.trim());
-                            matchCat = productCats.includes(this.selectedCategory);
-                        } else if (this.selectedCategory && !p['หมวดหมู่เว็บ']) { matchCat = false; }
-                        let matchBrand = this.selectedBrand ? p['แบรนด์'] === this.selectedBrand : true;
-                        return matchCat && matchBrand;
-                    });
+                    return this.products.filter(p => this.selectedCategory ? (p['หมวดหมู่เว็บ'] && String(p['หมวดหมู่เว็บ']).includes(this.selectedCategory)) : true);
                 },
                 cartTotal() { return this.cart.reduce((total, item) => total + (this.getPrice(item.product) * item.qty), 0); }
             },
-            mounted() {
+            async mounted() {
                 this.fetchProducts();
-                const savedCustomer = localStorage.getItem('mira_customer');
-                if (savedCustomer) this.customer = JSON.parse(savedCustomer);
+                
+                // 🚀 ระบบ LINE LIFF (บังคับล็อกอินอัตโนมัติ)
+                try {
+                    await liff.init({ liffId: this.liffId });
+                    if (liff.isLoggedIn()) {
+                        this.lineProfile = await liff.getProfile();
+                        // ถ้าเคยสั่งแล้ว ให้ดึงชื่อเบอร์เก่ามาใส่ในตะกร้าให้อัตโนมัติ
+                        const savedCustomer = localStorage.getItem('mira_customer');
+                        if (savedCustomer) this.customer = JSON.parse(savedCustomer);
+                    } else {
+                        liff.login();
+                    }
+                } catch (err) { console.error('LIFF Error:', err); }
             },
             methods: {
                 async fetchProducts() {
@@ -280,20 +247,12 @@
                     this.loading = false;
                 },
                 getPrice(product) { return (product['ราคาโปรโมชั่น'] && product['ราคาโปรโมชั่น'] > 0) ? product['ราคาโปรโมชั่น'] : product['Price']; },
-                openProductModal(product) {
-                    this.selectedProduct = product;
-                    this.activeImage = product['รูป1'] || 'https://via.placeholder.com/400?text=No+Image';
-                },
+                openProductModal(product) { this.selectedProduct = product; },
                 addToCart(product) {
                     const existing = this.cart.find(item => item.product['บาร์โค้ด'] === product['บาร์โค้ด']);
-                    if (existing) { 
-                        if(existing.qty < product['Qty']) existing.qty++; 
-                        else alert('สินค้าในสต๊อกมีเพียง ' + product['Qty'] + ' ชิ้น');
-                    } else { 
-                        this.cart.push({ product, qty: 1 }); 
-                    }
+                    if (existing) { if(existing.qty < product['Qty']) existing.qty++; } 
+                    else { this.cart.push({ product, qty: 1 }); }
                     this.isCartOpen = true;
-                    if(this.selectedProduct) this.selectedProduct = null;
                 },
                 handleFileUpload(event) {
                     const file = event.target.files[0];
@@ -308,48 +267,37 @@
                     this.isCheckingOut = true;
                     localStorage.setItem('mira_customer', JSON.stringify(this.customer));
                     
-                    const itemsText = this.cart.map(item => `${item.product['Name']} x ${item.qty}`).join(', ');
-                    
                     const payload = {
                         customerName: this.customer.name, phone: this.customer.phone,
-                        address: this.customer.address, items: itemsText, totalAmount: this.cartTotal,
-                        slipBase64: this.slipBase64,
-                        cartData: this.cart.map(item => ({ barcode: item.product['บาร์โค้ด'], qty: item.qty })) 
+                        address: this.customer.address, 
+                        items: this.cart.map(item => `${item.product['Name']} x ${item.qty}`).join('\n'), 
+                        totalAmount: this.cartTotal, slipBase64: this.slipBase64,
+                        cartData: this.cart.map(item => ({ barcode: item.product['บาร์โค้ด'], qty: item.qty })),
+                        // 🚀 ส่ง LINE ID ไปพร้อมกับออเดอร์
+                        lineUserId: this.lineProfile ? this.lineProfile.userId : '' 
                     };
                     
                     try {
-                        const response = await fetch(this.apiUrl, {
-                            method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                        });
+                        const response = await fetch(this.apiUrl, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
                         const result = await response.json();
                         if(result.success) {
                             alert(`สั่งซื้อสำเร็จ! รหัส: ${result.orderId}`);
                             this.cart = []; this.isCartOpen = false; this.slipBase64 = '';
                             this.fetchProducts();
-                        } else { 
-                            alert("แจ้งเตือนจากระบบ: " + result.error + "\n\nคำแนะนำ: โปรดตรวจสอบว่าชีต 'WebOrders' พิมพ์ถูกต้องและไม่มีเว้นวรรค"); 
-                        }
+                        } else { alert("เกิดข้อผิดพลาด: " + result.error); }
                     } catch(error) { alert("การสั่งซื้อขัดข้อง โปรดลองอีกครั้ง"); }
                     this.isCheckingOut = false;
                 },
-                async checkStatus() {
-                    if (!this.searchPhone.trim()) return alert("กรุณากรอกเบอร์โทร");
+                // 🚀 ดึงประวัติออเดอร์จาก LINE ID ลูกค้าโดยตรง
+                async fetchHistory() {
+                    if(!this.lineProfile) return alert("ไม่พบข้อมูล LINE ของคุณ");
+                    this.isHistoryOpen = true;
+                    this.isLoadingHistory = true;
                     try {
-                        const res = await fetch(`${this.apiUrl}?action=checkStatus&phone=${encodeURIComponent(this.searchPhone.trim())}`);
-                        this.orderStatuses = await res.json();
-                        if(this.orderStatuses.length === 0) alert("ไม่พบประวัติการสั่งซื้อด้วยเบอร์โทรนี้");
-                    } catch (error) { alert("เกิดข้อผิดพลาดในการดึงข้อมูล"); }
-                },
-                printWaybill(order) {
-                    this.printData = order; 
-                    setTimeout(() => {
-                        const printSection = document.getElementById('print-section');
-                        if(printSection) {
-                            printSection.style.display = 'block';
-                            window.print(); 
-                            printSection.style.display = 'none';
-                        }
-                    }, 100);
+                        const res = await fetch(`${this.apiUrl}?action=getOrdersByLineId&lineId=${this.lineProfile.userId}`);
+                        this.orderHistory = await res.json();
+                    } catch (error) { alert("เกิดข้อผิดพลาดในการโหลดประวัติ"); }
+                    this.isLoadingHistory = false;
                 }
             }
         }).mount('#app');
